@@ -1,6 +1,6 @@
 fn main() {
   log("Bonjour de Gaufre!")
-  for i=1 to 10 {
+  for i=1 to 30 {
      log("ligne ",i)
   }
 }

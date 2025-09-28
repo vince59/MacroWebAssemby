@@ -1,6 +1,7 @@
 mod lexer;
 mod parser;
 mod codegen;
+mod grammar;
 
 use lexer::Lexer;
 use parser::Parser;

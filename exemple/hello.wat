@@ -161,13 +161,13 @@
     i32.const 1024  ;; ret cap
     call $invoke
     drop
-    ;; for i = 1 to 10
+    ;; for i = 1 to 30
     i32.const 1
     local.set $i
     block $exit
     loop $loop
     local.get $i
-    i32.const 10
+    i32.const 30
     i32.gt_s
     br_if $exit
     i32.const 512
