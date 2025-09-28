@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+  <meta charset="utf-8" />
+  <title>WAT : Bonjour</title>
+  <style>
+    body{font:16px system-ui;margin:2rem}
+    #out{white-space:pre-wrap}
+  </style>
+  <h1>Démo WebAssembly (WAT)</h1>
+  <p id="out">Chargement…</p>
+  <button id="btn">Relancer</button>
+
+  <script type="module">
+    const td = new TextDecoder();
+    const te = new TextEncoder();
+
+    let memoryRef;                 // sera défini après instanciation
+    const out = document.getElementById('out');
+
+    // Imports fournis au module WAsm
+    const imports = {
+      env: {
+        prompt(ptr, cap) {
+          const name = window.prompt("Quel est votre nom ?") ?? "";
+          const bytes = te.encode(name);
+          const n = Math.min(bytes.length, cap|0);
+          new Uint8Array(memoryRef.buffer, ptr, n).set(bytes.subarray(0, n));
+          return n;
+        },
+        log(ptr, len) {
+          const text = td.decode(new Uint8Array(memoryRef.buffer, ptr, len));
+          console.log(text);
+          // on affiche aussi dans la page
+          if (out.textContent === "Chargement…") out.textContent = "";
+          out.textContent += text;
+        }
+      }
+    };
+
+    async function initAndRun() {
+      out.textContent = "Chargement…";
+      const { instance } = await WebAssembly.instantiateStreaming(fetch("./binary.wasm"), imports);
+      memoryRef = instance.exports.memory;
+      out.textContent = "";        // nettoie l'état
+      instance.exports.run();      // demande le nom & affiche le bonjour
+    }
+
+    document.getElementById('btn').addEventListener('click', initAndRun);
+    initAndRun();
+  </script>
+</html>
