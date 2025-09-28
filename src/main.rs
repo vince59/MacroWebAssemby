@@ -13,23 +13,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let src = fs::read_to_string(&path)?;
     let lx = Lexer::new(&src);
     let mut p = Parser::new(lx)?;
-    let ast = p.parse_program()?; // Program { logs }
+    let ast = p.parse_program()?;
 
     let wat = codegen::generate_wat(&ast);
 
-    // Écrit soit vers 2e argument, soit <input>.wat, soit stdout si input == "-"
-    if path == "-" {
-        // lecture stdin / écriture stdout
-        print!("{wat}");
-    } else {
-        let default_out = Path::new(&path)
-            .with_extension("wat")
-            .to_string_lossy()
-            .into_owned();
-        let out = out_path.unwrap_or(default_out);
-        fs::write(&out, wat)?;
-        eprintln!("Écrit: {}", out);
-    }
-
+    let default_out = Path::new(&path).with_extension("wat").to_string_lossy().into_owned();
+    let out = out_path.unwrap_or(default_out);
+    fs::write(&out, wat)?;
+    eprintln!("Écrit: {}", out);
     Ok(())
 }
