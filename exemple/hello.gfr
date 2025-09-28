@@ -1,0 +1,4 @@
+fn main() {
+  log("Bonjour de Gaufre!")
+  log("ligne 1")
+}

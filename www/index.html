@@ -1,63 +1,18 @@
-<!doctype html>
-<meta charset="utf-8" />
-<title>Passerelle générique OK</title>
-<pre id="out">Chargement…</pre>
+<!doctype html><meta charset="utf-8" />
+<pre id="out">Ouvre la console (F12)</pre>
 <script type="module">
-  const td = new TextDecoder(), te = new TextEncoder();
-  let memoryRef; const out = document.getElementById('out');
-
-  function resolveByPath(name) {
-    return name.split('.').reduce((o,k)=>o?.[k], globalThis);
-  }
-
-  const imports = {
-    env: {
-      log(ptr, len) {
-        const bytes = new Uint8Array(memoryRef.buffer, ptr, len);
-        const s = td.decode(bytes);
-        if (out.textContent === "Chargement…") out.textContent = "";
-        out.textContent += s;
-        console.log("[WASM log]", s);
-      },
-
-      // ⚠️ Ceci DOIT être une fonction
-      invoke(nptr, nlen, aptr, alen, rptr, rcap) {
-        const mem = new Uint8Array(memoryRef.buffer);
-        const name = td.decode(mem.subarray(nptr, nptr+nlen));
-        const argsJson = td.decode(mem.subarray(aptr, aptr+alen));
-        let args = [];
-        try { if (alen) args = JSON.parse(argsJson); } catch {}
-        const fn = resolveByPath(name);
-
-        // Si ce n'est pas une fonction → renvoie une erreur JSON (mais c'est callable côté import)
-        if (typeof fn !== "function") {
-          const err = te.encode(`{"error":"${name} n'est pas une fonction"}`);
-          mem.set(err.subarray(0, rcap), rptr);
-          return Math.min(err.length, rcap);
-        }
-
-        let res;
-        try { res = fn.apply(null, args); }
-        catch (e) { res = { error: String(e) }; }
-
-        let json = JSON.stringify(res);
-        if (json === undefined) json = "null";
-        const outBytes = te.encode(json);
-        mem.set(outBytes.subarray(0, rcap), rptr);
-        return Math.min(outBytes.length, rcap);
-      }
-    }
-  };
-
-  // 🧪 Vérif AVANT instantiation
-  console.log("typeof imports.env.invoke =", typeof imports.env.invoke); // doit afficher "function"
-
-  const { instance } =
-    await WebAssembly.instantiateStreaming(fetch("./binary.wasm?v=" + Date.now()), imports);
-
-  memoryRef = instance.exports.memory;
-
-  console.log("Exports:", Object.keys(instance.exports)); // doit contenir "run"
-  out.textContent = "";
-  instance.exports.run();
+  const td=new TextDecoder(), te=new TextEncoder();
+  let mem;
+  const gaufre={invoke(nptr,nlen,aptr,alen,rptr,rcap){
+    const u8=new Uint8Array(mem.buffer);
+    const name=td.decode(u8.subarray(nptr,nptr+nlen));
+    const args=alen?JSON.parse(td.decode(u8.subarray(aptr,aptr+alen))):[];
+    const fn=name.split('.').reduce((o,k)=>o?.[k], globalThis);
+    let res; try{ res=fn(...args); }catch(e){ res={error:String(e)}; }
+    let json=JSON.stringify(res); if(json===undefined) json="null";
+    const out=te.encode(json); u8.set(out.subarray(0,rcap), rptr); return Math.min(out.length,rcap);
+  }};
+  const {instance}=await WebAssembly.instantiateStreaming(fetch("./binary.wasm?v="+Date.now()), { gaufre });
+  mem=instance.exports.memory;
+  instance.exports.main();
 </script>
